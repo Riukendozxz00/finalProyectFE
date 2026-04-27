@@ -2,6 +2,11 @@ export const endpoints = {
   auth: {
     login: '/mayoreo/ejecutivos/personal/login',
   },
+  dashboard: {
+    conversion: '/dashboard/conversion',
+    sales: '/dashboard/sales',
+    equipo: '/dashboard/equipo',
+  },
   usuarios: {
     crear: (idEjecutivo: string) => `/mayoreo/ejecutivos/${idEjecutivo}/usuarios/crear`,
     listar: (empleadoId: string) => `/mayoreo/ejecutivos/${empleadoId}/usuarios/todo`,
