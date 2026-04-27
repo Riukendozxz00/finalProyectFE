@@ -70,7 +70,10 @@ export function useClienteDetalle(idUsuario: string, clienteId?: string) {
       const response = await httpClient.get(
         endpoints.clientes.detalle(idUsuario, clienteId ?? ''),
       )
-      return parseApiData<Cliente>(response.data)
+      const data = parseApiData<{ cliente?: Cliente } | Cliente>(response.data)
+      return 'cliente' in Object(data)
+        ? (data as { cliente: Cliente }).cliente
+        : (data as Cliente)
     },
   })
 }

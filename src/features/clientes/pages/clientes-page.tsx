@@ -2,9 +2,9 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { RotateCcw, Plus, Search, Trash2 } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { useForm } from 'react-hook-form'
+import { useNavigate } from 'react-router-dom'
 import { z } from 'zod'
 import {
-  useClienteDetalle,
   useClientes,
   useCrearCliente,
   useEliminarCliente,
@@ -56,10 +56,10 @@ export function ClientesPage() {
   const currentUser = useSessionStore((state) => state.user)
   const idUsuario = currentUser?.id ?? ''
   const { showToast } = useToast()
+  const navigate = useNavigate()
   const [filters, setFilters] = useState<ClienteFilters>({})
   const [page, setPage] = useState(1)
   const [editing, setEditing] = useState<Cliente | null>(null)
-  const [detailId, setDetailId] = useState<string>()
   const [deleteId, setDeleteId] = useState<string>()
   const [reactivateId, setReactivateId] = useState<string>()
 
@@ -73,7 +73,6 @@ export function ClientesPage() {
   })
 
   const clientes = useClientes(idUsuario, filters)
-  const detalle = useClienteDetalle(idUsuario, detailId)
   const crear = useCrearCliente(idUsuario)
   const modificar = useModificarCliente(idUsuario)
   const eliminar = useEliminarCliente(idUsuario)
@@ -111,7 +110,7 @@ export function ClientesPage() {
             <Button
               variant="secondary"
               className="min-h-8 px-3"
-              onClick={() => setDetailId(id)}
+              onClick={() => navigate(`/clientes/${id}`)}
             >
               Ver
             </Button>
@@ -304,20 +303,6 @@ export function ClientesPage() {
             </Button>
           </div>
         </form>
-      </Modal>
-
-      <Modal
-        open={Boolean(detailId)}
-        title="Detalle de cliente"
-        onClose={() => setDetailId(undefined)}
-      >
-        {detalle.isLoading ? (
-          <p className="text-sm text-slate-500">Cargando...</p>
-        ) : (
-          <pre className="overflow-auto rounded-md bg-slate-950 p-4 text-xs text-slate-50">
-            {JSON.stringify(detalle.data, null, 2)}
-          </pre>
-        )}
       </Modal>
 
       <ConfirmDialog
