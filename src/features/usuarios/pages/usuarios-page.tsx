@@ -2,12 +2,12 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { Plus, Search } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { useForm } from 'react-hook-form'
+import { useNavigate } from 'react-router-dom'
 import { z } from 'zod'
 import {
   useCrearUsuario,
   useEquipo,
   useModificarUsuario,
-  useUsuarioDetalle,
   useUsuarios,
 } from '../api'
 import type { Usuario, UsuarioEditableColumn } from '../types'
@@ -49,15 +49,14 @@ export function UsuariosPage() {
   const currentUser = useSessionStore((state) => state.user)
   const empleadoId = currentUser?.id ?? ''
   const { showToast } = useToast()
+  const navigate = useNavigate()
   const [search, setSearch] = useState('')
   const [page, setPage] = useState(1)
   const [showCreate, setShowCreate] = useState(false)
-  const [detailId, setDetailId] = useState<string>()
   const [showTeam, setShowTeam] = useState(false)
 
   const usuarios = useUsuarios(empleadoId)
   const equipo = useEquipo(empleadoId)
-  const detalle = useUsuarioDetalle(detailId ?? '')
   const crear = useCrearUsuario(empleadoId)
   const modificar = useModificarUsuario(empleadoId)
 
@@ -107,7 +106,7 @@ export function UsuariosPage() {
             <Button
               variant="secondary"
               className="min-h-8 px-3"
-              onClick={() => setDetailId(id)}
+              onClick={() => navigate(`/usuarios/${id}`)}
             >
               Ver
             </Button>
@@ -307,20 +306,6 @@ export function UsuariosPage() {
             </Button>
           </div>
         </form>
-      </Modal>
-
-      <Modal
-        open={Boolean(detailId)}
-        title="Detalle de usuario"
-        onClose={() => setDetailId(undefined)}
-      >
-        {detalle.isLoading ? (
-          <p className="text-sm text-slate-500">Cargando...</p>
-        ) : (
-          <pre className="overflow-auto rounded-md bg-slate-950 p-4 text-xs text-slate-50">
-            {JSON.stringify(detalle.data, null, 2)}
-          </pre>
-        )}
       </Modal>
     </>
   )

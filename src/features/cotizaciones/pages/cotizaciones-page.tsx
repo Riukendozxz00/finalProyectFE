@@ -1,7 +1,8 @@
 import { zodResolver } from '@hookform/resolvers/zod'
-import { Plus, Search, Trash2 } from 'lucide-react'
-import { useMemo, useState } from 'react'
+import { ArrowLeft, Plus, Search, Trash2 } from 'lucide-react'
+import { useEffect, useMemo, useState } from 'react'
 import { useForm } from 'react-hook-form'
+import { Link, useParams } from 'react-router-dom'
 import { z } from 'zod'
 import {
   useCotizacionDetalle,
@@ -40,11 +41,13 @@ const cotizacionSchema = z.object({
 type CotizacionForm = z.infer<typeof cotizacionSchema>
 
 export function CotizacionesPage() {
+  const { clienteId: routeClienteId } = useParams()
   const currentUser = useSessionStore((state) => state.user)
   const idUsuario = currentUser?.id ?? ''
   const { showToast } = useToast()
-  const [clienteId, setClienteId] = useState('')
-  const [activeClienteId, setActiveClienteId] = useState('')
+  const lockedClienteId = routeClienteId ?? ''
+  const [clienteId, setClienteId] = useState(lockedClienteId)
+  const [activeClienteId, setActiveClienteId] = useState(lockedClienteId)
   const [page, setPage] = useState(1)
   const [editing, setEditing] = useState<Cotizacion | null>(null)
   const [detailId, setDetailId] = useState<string>()
@@ -62,6 +65,13 @@ export function CotizacionesPage() {
     resolver: zodResolver(cotizacionSchema),
     defaultValues: { folio: '', subtotal: '', cta_credito_id: '', ejecutivo_id: '' },
   })
+
+  useEffect(() => {
+    if (!lockedClienteId) return
+    setClienteId(lockedClienteId)
+    setActiveClienteId(lockedClienteId)
+    setPage(1)
+  }, [lockedClienteId])
 
   const pageRows = useMemo(
     () => paginate(cotizaciones.data ?? [], page, PAGE_SIZE),
@@ -161,43 +171,60 @@ export function CotizacionesPage() {
   return (
     <>
       <PageHeader
-        title="Cotizaciones"
-        description="Listado y captura de cotizaciones por cliente."
+        title={lockedClienteId ? 'Cotizaciones del cliente' : 'Cotizaciones'}
+        description={
+          lockedClienteId
+            ? `Listado de cotizaciones registradas para el cliente #${lockedClienteId}.`
+            : 'Listado y captura de cotizaciones por cliente.'
+        }
         actions={
-          <Button onClick={openCreate} disabled={!activeClienteId}>
-            <Plus className="h-4 w-4" />
-            Nueva cotizacion
-          </Button>
+          <>
+            {lockedClienteId ? (
+              <Link
+                to={`/clientes/${lockedClienteId}`}
+                className="inline-flex min-h-10 items-center justify-center gap-2 rounded-md border border-black/10 bg-white px-4 text-sm font-semibold text-kleep-ink transition hover:border-kleep-blue/30 hover:bg-kleep-soft"
+              >
+                <ArrowLeft className="h-4 w-4" />
+                Perfil
+              </Link>
+            ) : null}
+            <Button onClick={openCreate} disabled={!activeClienteId}>
+              <Plus className="h-4 w-4" />
+              Nueva cotizacion
+            </Button>
+          </>
         }
       />
 
-      <Card className="p-4">
-        <form
-          className="flex flex-col gap-3 sm:flex-row sm:items-end"
-          onSubmit={(event) => {
-            event.preventDefault()
-            setActiveClienteId(clienteId)
-            setPage(1)
-          }}
-        >
-          <Select
-            label="Cliente"
-            value={clienteId}
-            onChange={(event) => setClienteId(event.target.value)}
+      {!lockedClienteId ? (
+        <Card className="p-4">
+          <form
+            className="flex flex-col gap-3 sm:flex-row sm:items-end"
+            onSubmit={(event) => {
+              event.preventDefault()
+              setActiveClienteId(clienteId)
+              setPage(1)
+            }}
           >
-            <option value="">Selecciona cliente</option>
-            {clientesOptions.data?.map((option) => (
-              <option key={option.value} value={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </Select>
-          <Button type="submit">
-            <Search className="h-4 w-4" />
-            Consultar
-          </Button>
-        </form>
-      </Card>
+            <Select
+              label="Cliente"
+              value={clienteId}
+              onChange={(event) => setClienteId(event.target.value)}
+            >
+              <option value="">Selecciona cliente</option>
+              {clientesOptions.data?.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </Select>
+            <Button type="submit">
+              <Search className="h-4 w-4" />
+              Consultar
+            </Button>
+          </form>
+        </Card>
+      ) : null}
 
       <DataTable
         data={pageRows}
