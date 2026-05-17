@@ -5,12 +5,31 @@ import { queryKeys } from '@/shared/api/queryKeys'
 import { parseApiData, toArray } from '@/shared/api/response'
 import type { CambiarPermisoPayload, CambiarTodosPayload, Grupo, Permiso } from './types'
 
+const PERMISOS_READ_CONFIG = { skipUnauthorizedHandler: true }
+
+function normalizeWriteResponse(response: { status: number; data: unknown }) {
+  const data = parseApiData<{ status?: string } | unknown>(response.data)
+  if (
+    response.status === 202 ||
+    (data &&
+      typeof data === 'object' &&
+      (data as { status?: unknown }).status === 'RECEIVED')
+  ) {
+    return { status: 'RECEIVED' as const }
+  }
+  return data
+}
+
 export function useGruposPorUsuario(id: string) {
   return useQuery({
     queryKey: queryKeys.permisos.gruposUsuario(id),
     enabled: Boolean(id),
     queryFn: async () => {
-      const response = await httpClient.post(endpoints.permisos.gruposPorUsuario(id))
+      const response = await httpClient.post(
+        endpoints.permisos.gruposPorUsuario(id),
+        undefined,
+        PERMISOS_READ_CONFIG,
+      )
       return toArray<Grupo>(parseApiData(response.data))
     },
   })
@@ -21,7 +40,10 @@ export function useTodosGrupos(empleadoId: string) {
     queryKey: queryKeys.permisos.gruposTodos(empleadoId),
     enabled: Boolean(empleadoId),
     queryFn: async () => {
-      const response = await httpClient.get(endpoints.permisos.gruposTodos(empleadoId))
+      const response = await httpClient.get(
+        endpoints.permisos.gruposTodos(empleadoId),
+        PERMISOS_READ_CONFIG,
+      )
       return toArray<Grupo>(parseApiData(response.data))
     },
   })
@@ -34,6 +56,7 @@ export function usePermisosPorGrupo(empleadoId: string, groupId: string) {
     queryFn: async () => {
       const response = await httpClient.get(
         endpoints.permisos.permisosPorGrupo(empleadoId, groupId),
+        PERMISOS_READ_CONFIG,
       )
       return toArray<Permiso>(parseApiData(response.data))
     },
@@ -47,6 +70,8 @@ export function usePermisosPorGrupoPost(userId: string, groupId: string) {
     queryFn: async () => {
       const response = await httpClient.post(
         endpoints.permisos.permisosPorGrupoPost(userId, groupId),
+        undefined,
+        PERMISOS_READ_CONFIG,
       )
       return toArray<Permiso>(parseApiData(response.data))
     },
@@ -64,6 +89,7 @@ export function usePermisosPorPosicion(
     queryFn: async () => {
       const response = await httpClient.get(
         endpoints.permisos.permisosPorPosicion(empleadoId, groupId, positionId),
+        PERMISOS_READ_CONFIG,
       )
       return toArray<Permiso>(parseApiData(response.data))
     },
@@ -83,7 +109,7 @@ export function useCambiarPermiso() {
           payload.accion,
         ),
       )
-      return parseApiData(response.data)
+      return normalizeWriteResponse(response)
     },
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: queryKeys.permisos.all })
@@ -103,7 +129,7 @@ export function useCambiarTodosPermisos() {
           payload.accion,
         ),
       )
-      return parseApiData(response.data)
+      return normalizeWriteResponse(response)
     },
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: queryKeys.permisos.all })

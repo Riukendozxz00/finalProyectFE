@@ -1,6 +1,12 @@
 import axios, { AxiosError, type InternalAxiosRequestConfig } from 'axios'
 import type { ApiErrorPayload } from '@/shared/types/api'
 
+declare module 'axios' {
+  export interface AxiosRequestConfig {
+    skipUnauthorizedHandler?: boolean
+  }
+}
+
 const API_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:3000'
 const TOKEN_KEY = 'app.accessToken'
 
@@ -26,7 +32,10 @@ httpClient.interceptors.response.use(
   (response) => response,
   (error: AxiosError) => {
     const payload = normalizeHttpError(error)
-    if (payload.status === 401) onUnauthorized?.()
+    const skipUnauthorizedHandler = (
+      error.config as { skipUnauthorizedHandler?: boolean } | undefined
+    )?.skipUnauthorizedHandler
+    if (payload.status === 401 && !skipUnauthorizedHandler) onUnauthorized?.()
     return Promise.reject(payload)
   },
 )

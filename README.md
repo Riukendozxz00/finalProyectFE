@@ -22,7 +22,7 @@ VITE_API_URL=http://localhost:3000
 ## Scripts
 
 ```bash
-npm run dev      # levanta el FE en http://localhost:3002
+npm run dev      # levanta el FE en http://localhost:3001
 npm run build    # typecheck + build de produccion
 npm run lint     # ESLint
 npm run format   # Prettier
@@ -77,7 +77,7 @@ src/
 
 ## Checklist
 
-- [x] Vite en puerto local `3002`.
+- [x] Vite en puerto local `3001`.
 - [x] Backend configurable via `VITE_API_URL`, por defecto documentado en `3000`.
 - [x] Login con body exacto `{ user, pass }`.
 - [x] Sidebar, header con usuario y rutas privadas.
