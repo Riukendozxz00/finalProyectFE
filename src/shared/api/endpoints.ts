@@ -73,6 +73,8 @@ export const endpoints = {
       `/${idUsuario}/bases/${baseId}/informacionGeneral/modificar`,
     detalle: (idUsuario: string, baseId: string) =>
       `/${idUsuario}/bases/${baseId}/informacionGeneral/obtener`,
+    documentos: (idUsuario: string, baseId: string) =>
+      `/${idUsuario}/bases/${baseId}/documentos/informacionGeneral/obtener`,
     eliminar: (idUsuario: string, baseId: string) =>
       `/${idUsuario}/bases/${baseId}/informacionGeneral/eliminar`,
   },

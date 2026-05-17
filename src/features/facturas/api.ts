@@ -40,6 +40,20 @@ export function useFacturaDetalle(
   })
 }
 
+export async function getFacturaDetalle(
+  idUsuario: string,
+  clienteId: string,
+  facturaId: string,
+) {
+  const response = await httpClient.get(
+    endpoints.facturas.detalle(idUsuario, clienteId, facturaId),
+  )
+  const data = parseApiData<{ factura?: Factura } | Factura>(response.data)
+  return 'factura' in Object(data)
+    ? (data as { factura: Factura }).factura
+    : (data as Factura)
+}
+
 export function useCrearFactura(idUsuario: string, clienteId: string) {
   const queryClient = useQueryClient()
   return useMutation({

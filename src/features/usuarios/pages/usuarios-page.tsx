@@ -11,6 +11,7 @@ import {
   useUsuarios,
 } from '../api'
 import type { Usuario, UsuarioEditableColumn } from '../types'
+import { permissions } from '@/features/auth/permissions'
 import { useSessionStore } from '@/features/auth/session'
 import { getMessageFromUnknown } from '@/shared/api/response'
 import { Button } from '@/shared/ui/button'
@@ -47,6 +48,7 @@ type EditForm = z.infer<typeof editSchema>
 
 export function UsuariosPage() {
   const currentUser = useSessionStore((state) => state.user)
+  const can = useSessionStore((state) => state.can)
   const empleadoId = currentUser?.id ?? ''
   const { showToast } = useToast()
   const navigate = useNavigate()
@@ -59,6 +61,8 @@ export function UsuariosPage() {
   const equipo = useEquipo(empleadoId)
   const crear = useCrearUsuario(empleadoId)
   const modificar = useModificarUsuario(empleadoId)
+  const canCreate = can(permissions.usuarios.create)
+  const canUpdate = can(permissions.usuarios.update)
 
   const createForm = useForm<UsuarioForm>({
     resolver: zodResolver(usuarioSchema),
@@ -96,7 +100,10 @@ export function UsuariosPage() {
     },
     { header: 'Correo', cell: (row) => row.correo ?? '-' },
     { header: 'Telefono', cell: (row) => row.telefono ?? '-' },
-    { header: 'Region', cell: (row) => row.regionId ?? row.region ?? '-' },
+    {
+      header: 'Region',
+      cell: (row) => row.region_nombre ?? row.region ?? row.regionId ?? '-',
+    },
     {
       header: 'Acciones',
       cell: (row) => {
@@ -110,19 +117,21 @@ export function UsuariosPage() {
             >
               Ver
             </Button>
-            <Button
-              variant="secondary"
-              className="min-h-8 px-3"
-              onClick={() => {
-                editForm.reset({
-                  idUsuario: id,
-                  column: 'nombre',
-                  newValue: String(row.nombre ?? ''),
-                })
-              }}
-            >
-              Modificar
-            </Button>
+            {canUpdate ? (
+              <Button
+                variant="secondary"
+                className="min-h-8 px-3"
+                onClick={() => {
+                  editForm.reset({
+                    idUsuario: id,
+                    column: 'nombre',
+                    newValue: String(row.nombre ?? ''),
+                  })
+                }}
+              >
+                Modificar
+              </Button>
+            ) : null}
           </div>
         )
       },
@@ -183,10 +192,12 @@ export function UsuariosPage() {
         title="Usuarios"
         description="Alta, listado, detalle, mi equipo y modificacion por columna."
         actions={
-          <Button onClick={() => setShowCreate(true)}>
-            <Plus className="h-4 w-4" />
-            Nuevo usuario
-          </Button>
+          canCreate ? (
+            <Button onClick={() => setShowCreate(true)}>
+              <Plus className="h-4 w-4" />
+              Nuevo usuario
+            </Button>
+          ) : null
         }
       />
 
@@ -212,35 +223,37 @@ export function UsuariosPage() {
           </Button>
         </div>
 
-        <form
-          className="grid gap-3 md:grid-cols-4"
-          onSubmit={editForm.handleSubmit(onEdit)}
-        >
-          <Input
-            label="ID usuario"
-            type="number"
-            {...editForm.register('idUsuario')}
-            error={editForm.formState.errors.idUsuario?.message}
-          />
-          <Select label="Columna" {...editForm.register('column')}>
-            <option value="nombre">nombre</option>
-            <option value="apellido">apellido</option>
-            <option value="posicion_id">posicion_id</option>
-            <option value="telefono">telefono</option>
-            <option value="correo">correo</option>
-            <option value="regionId">regionId</option>
-          </Select>
-          <Input
-            label="Nuevo valor"
-            {...editForm.register('newValue')}
-            error={editForm.formState.errors.newValue?.message}
-          />
-          <div className="flex items-end">
-            <Button className="w-full" type="submit" isLoading={modificar.isPending}>
-              Guardar cambio
-            </Button>
-          </div>
-        </form>
+        {canUpdate ? (
+          <form
+            className="grid gap-3 md:grid-cols-4"
+            onSubmit={editForm.handleSubmit(onEdit)}
+          >
+            <Input
+              label="ID usuario"
+              type="number"
+              {...editForm.register('idUsuario')}
+              error={editForm.formState.errors.idUsuario?.message}
+            />
+            <Select label="Columna" {...editForm.register('column')}>
+              <option value="nombre">nombre</option>
+              <option value="apellido">apellido</option>
+              <option value="posicion_id">posicion_id</option>
+              <option value="telefono">telefono</option>
+              <option value="correo">correo</option>
+              <option value="regionId">regionId</option>
+            </Select>
+            <Input
+              label="Nuevo valor"
+              {...editForm.register('newValue')}
+              error={editForm.formState.errors.newValue?.message}
+            />
+            <div className="flex items-end">
+              <Button className="w-full" type="submit" isLoading={modificar.isPending}>
+                Guardar cambio
+              </Button>
+            </div>
+          </form>
+        ) : null}
       </Card>
 
       <DataTable

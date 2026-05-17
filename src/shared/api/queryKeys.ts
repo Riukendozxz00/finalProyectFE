@@ -41,6 +41,8 @@ export const queryKeys = {
       ['bases', 'list', idUsuario, clienteId] as const,
     detail: (idUsuario: string, baseId: string) =>
       ['bases', 'detail', idUsuario, baseId] as const,
+    documents: (idUsuario: string, baseId: string, filters?: unknown) =>
+      ['bases', 'documents', idUsuario, baseId, filters] as const,
   },
   cotizaciones: {
     all: ['cotizaciones'] as const,
