@@ -1,8 +1,10 @@
 import { createBrowserRouter } from 'react-router-dom'
 import { AppLayout } from './layouts/app-layout'
-import { PrivateRoute } from './layouts/private-route'
+import { PermissionRoute, PrivateRoute } from './layouts/private-route'
+import { permissions } from '@/features/auth/permissions'
 import { LoginPage } from '@/features/auth/pages/login-page'
 import { BasesPage } from '@/features/bases/pages/bases-page'
+import { BaseProfilePage } from '@/features/bases/pages/base-profile-page'
 import { ClienteProfilePage } from '@/features/clientes/pages/cliente-profile-page'
 import { ClientesPage } from '@/features/clientes/pages/clientes-page'
 import { CotizacionesPage } from '@/features/cotizaciones/pages/cotizaciones-page'
@@ -25,18 +27,19 @@ export const router = createBrowserRouter([
       {
         element: <AppLayout />,
         children: [
-          { index: true, element: <DashboardPage /> },
-          { path: 'usuarios', element: <UsuariosPage /> },
-          { path: 'usuarios/:userId', element: <UsuarioProfilePage /> },
-          { path: 'permisos', element: <PermisosPage /> },
-          { path: 'clientes', element: <ClientesPage /> },
-          { path: 'clientes/:clienteId', element: <ClienteProfilePage /> },
-          { path: 'clientes/:clienteId/quotes', element: <CotizacionesPage /> },
-          { path: 'clientes/:clienteId/bills', element: <FacturasPage /> },
-          { path: 'cuentas-credito', element: <CuentasCreditoPage /> },
-          { path: 'bases', element: <BasesPage /> },
-          { path: 'cotizaciones', element: <CotizacionesPage /> },
-          { path: 'facturas', element: <FacturasPage /> },
+          { index: true, element: <PermissionRoute permission={permissions.dashboard.view}><DashboardPage /></PermissionRoute> },
+          { path: 'usuarios', element: <PermissionRoute permission={permissions.usuarios.view}><UsuariosPage /></PermissionRoute> },
+          { path: 'usuarios/:userId', element: <PermissionRoute permission={permissions.usuarios.view}><UsuarioProfilePage /></PermissionRoute> },
+          { path: 'permisos', element: <PermissionRoute permission={permissions.permisos.view}><PermisosPage /></PermissionRoute> },
+          { path: 'clientes', element: <PermissionRoute permission={permissions.clientes.view}><ClientesPage /></PermissionRoute> },
+          { path: 'clientes/:clienteId', element: <PermissionRoute permission={permissions.clientes.view}><ClienteProfilePage /></PermissionRoute> },
+          { path: 'clientes/:clienteId/quotes', element: <PermissionRoute permission={permissions.cotizaciones.view}><CotizacionesPage /></PermissionRoute> },
+          { path: 'clientes/:clienteId/bills', element: <PermissionRoute permission={permissions.facturas.view}><FacturasPage /></PermissionRoute> },
+          { path: 'cuentas-credito', element: <PermissionRoute permission={permissions.cuentasCredito.view}><CuentasCreditoPage /></PermissionRoute> },
+          { path: 'bases', element: <PermissionRoute permission={permissions.bases.view}><BasesPage /></PermissionRoute> },
+          { path: 'bases/:baseId', element: <PermissionRoute permission={permissions.bases.view}><BaseProfilePage /></PermissionRoute> },
+          { path: 'cotizaciones', element: <PermissionRoute permission={permissions.cotizaciones.view}><CotizacionesPage /></PermissionRoute> },
+          { path: 'facturas', element: <PermissionRoute permission={permissions.facturas.view}><FacturasPage /></PermissionRoute> },
         ],
       },
     ],

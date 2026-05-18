@@ -1,17 +1,19 @@
 import { zodResolver } from '@hookform/resolvers/zod'
-import { ArrowLeft, Plus, Search, Trash2 } from 'lucide-react'
+import { ArrowLeft, Download, Plus, Search, Trash2 } from 'lucide-react'
+import { jsPDF } from 'jspdf'
 import { useEffect, useMemo, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { Link, useParams } from 'react-router-dom'
 import { z } from 'zod'
 import {
+  getFacturaDetalle,
   useCrearFactura,
   useEliminarFactura,
-  useFacturaDetalle,
   useFacturas,
   useModificarFactura,
 } from '../api'
 import type { Factura } from '../types'
+import { permissions } from '@/features/auth/permissions'
 import { useSessionStore } from '@/features/auth/session'
 import { useClientesOptions } from '@/features/clientes/api'
 import { useUsuariosOptions } from '@/features/usuarios/api'
@@ -46,9 +48,167 @@ const facturaSchema = z
 
 type FacturaForm = z.infer<typeof facturaSchema>
 
+function formatMoney(value: unknown) {
+  if (value === null || value === undefined || value === '') return '-'
+  const numericValue = Number(value)
+  if (Number.isNaN(numericValue)) return String(value)
+
+  return new Intl.NumberFormat('es-MX', {
+    style: 'currency',
+    currency: 'MXN',
+  }).format(numericValue)
+}
+
+function display(value: unknown, fallback = '-') {
+  if (value === null || value === undefined || value === '') return fallback
+  if (typeof value === 'object') return JSON.stringify(value)
+  return String(value)
+}
+
+function sanitizeFileName(value: string) {
+  return value.replace(/[^a-zA-Z0-9._-]/g, '-')
+}
+
+function addRows(
+  doc: jsPDF,
+  rows: Array<[string, unknown]>,
+  startY: number,
+  left = 18,
+) {
+  let y = startY
+  const labelWidth = 48
+  const valueWidth = 126
+
+  rows.forEach(([label, value], index) => {
+    const rawValue = display(value)
+    const lines = doc.splitTextToSize(rawValue, valueWidth)
+    const rowHeight = Math.max(10, lines.length * 5 + 5)
+
+    if (y + rowHeight > 270) {
+      doc.addPage()
+      y = 20
+    }
+
+    doc.setFillColor(index % 2 === 0 ? 248 : 255, index % 2 === 0 ? 250 : 255, 252)
+    doc.rect(left, y, 174, rowHeight, 'F')
+    doc.setDrawColor(226, 232, 240)
+    doc.rect(left, y, 174, rowHeight)
+    doc.setFont('helvetica', 'bold')
+    doc.setFontSize(9)
+    doc.setTextColor(71, 85, 105)
+    doc.text(label, left + 4, y + 6.5)
+    doc.setFont('helvetica', 'normal')
+    doc.setTextColor(15, 23, 42)
+    doc.text(lines, left + labelWidth, y + 6.5)
+    y += rowHeight
+  })
+
+  return y
+}
+
+function addSectionTitle(doc: jsPDF, title: string, y: number) {
+  doc.setFont('helvetica', 'bold')
+  doc.setFontSize(12)
+  doc.setTextColor(3, 54, 157)
+  doc.text(title, 18, y)
+  return y + 7
+}
+
+function downloadFacturaPdf({
+  factura,
+  facturaId,
+  clienteId,
+  clienteNombre,
+  ejecutivoNombre,
+}: {
+  factura: Factura
+  facturaId: string
+  clienteId: string
+  clienteNombre?: string
+  ejecutivoNombre?: string
+}) {
+  const doc = new jsPDF({ unit: 'mm', format: 'letter' })
+  const record = factura as Record<string, unknown>
+  const issuedAt = new Date()
+  const fileFolio = sanitizeFileName(String(factura.folio ?? facturaId))
+
+  doc.setFillColor(3, 54, 157)
+  doc.rect(0, 0, 216, 30, 'F')
+  doc.setTextColor(255, 255, 255)
+  doc.setFont('helvetica', 'bold')
+  doc.setFontSize(18)
+  doc.text('KLEEP', 18, 13)
+  doc.setFontSize(11)
+  doc.text('Factura comercial', 18, 22)
+  doc.setFont('helvetica', 'normal')
+  doc.setFontSize(9)
+  doc.text(`Descargado: ${issuedAt.toLocaleString('es-MX')}`, 146, 13)
+
+  doc.setTextColor(15, 23, 42)
+  doc.setFont('helvetica', 'bold')
+  doc.setFontSize(20)
+  doc.text(`Factura #${facturaId}`, 18, 44)
+  doc.setFont('helvetica', 'normal')
+  doc.setFontSize(10)
+  doc.setTextColor(100, 116, 139)
+  doc.text(`Folio: ${display(factura.folio)}`, 18, 51)
+
+  let y = 66
+  y = addSectionTitle(doc, 'Datos principales', y)
+  y = addRows(doc, [
+    ['Factura ID', facturaId],
+    ['Folio', factura.folio],
+    ['Cliente', clienteNombre ?? clienteId],
+    ['Cliente ID', clienteId],
+    ['Ejecutivo', ejecutivoNombre ?? factura.ejecutivo_nombre ?? factura.ejecutivo_id],
+    ['Ejecutivo ID', factura.ejecutivo_id],
+    ['Cuenta credito', factura.cta_credito_id],
+    ['Cotizacion', factura.cotizacion_id],
+  ], y)
+
+  y += 8
+  y = addSectionTitle(doc, 'Importes', y)
+  y = addRows(doc, [['Subtotal', formatMoney(factura.subtotal)]], y)
+
+  const knownKeys = new Set([
+    'id',
+    'facturaId',
+    'folio',
+    'subtotal',
+    'cta_credito_id',
+    'ejecutivo_id',
+    'cotizacion_id',
+    'ejecutivo_nombre',
+  ])
+  const extraRows = Object.entries(record)
+    .filter(([key, value]) => !knownKeys.has(key) && value !== undefined && value !== null)
+    .map(([key, value]) => [key, value] as [string, unknown])
+
+  if (extraRows.length) {
+    y += 8
+    y = addSectionTitle(doc, 'Datos adicionales', y)
+    addRows(doc, extraRows, y)
+  }
+
+  const pageCount = doc.getNumberOfPages()
+  for (let index = 1; index <= pageCount; index += 1) {
+    doc.setPage(index)
+    doc.setDrawColor(226, 232, 240)
+    doc.line(18, 286, 198, 286)
+    doc.setFont('helvetica', 'normal')
+    doc.setFontSize(8)
+    doc.setTextColor(100, 116, 139)
+    doc.text(`Pagina ${index} de ${pageCount}`, 18, 292)
+    doc.text('Documento generado desde KLEEP', 144, 292)
+  }
+
+  doc.save(`factura-${fileFolio}.pdf`)
+}
+
 export function FacturasPage() {
   const { clienteId: routeClienteId } = useParams()
   const currentUser = useSessionStore((state) => state.user)
+  const can = useSessionStore((state) => state.can)
   const idUsuario = currentUser?.id ?? ''
   const { showToast } = useToast()
   const lockedClienteId = routeClienteId ?? ''
@@ -56,16 +216,18 @@ export function FacturasPage() {
   const [activeClienteId, setActiveClienteId] = useState(lockedClienteId)
   const [page, setPage] = useState(1)
   const [editing, setEditing] = useState<Factura | null>(null)
-  const [detailId, setDetailId] = useState<string>()
   const [deleteId, setDeleteId] = useState<string>()
+  const [downloadingId, setDownloadingId] = useState<string>()
 
   const facturas = useFacturas(idUsuario, activeClienteId)
-  const detalle = useFacturaDetalle(idUsuario, activeClienteId, detailId)
   const crear = useCrearFactura(idUsuario, activeClienteId)
   const modificar = useModificarFactura(idUsuario, activeClienteId)
   const eliminar = useEliminarFactura(idUsuario, activeClienteId)
   const clientesOptions = useClientesOptions(idUsuario)
   const usuariosOptions = useUsuariosOptions(idUsuario)
+  const canCreate = can(permissions.facturas.create)
+  const canUpdate = can(permissions.facturas.update)
+  const canDelete = can(permissions.facturas.delete)
 
   const form = useForm<FacturaForm>({
     resolver: zodResolver(facturaSchema),
@@ -91,7 +253,7 @@ export function FacturasPage() {
   )
 
   const columns: Array<Column<Factura>> = [
-    { header: 'ID', cell: (row) => getRecordId(row) },
+    { header: 'Numero de factura', cell: (row) => getRecordId(row) },
     { header: 'Folio', cell: (row) => row.folio ?? '-' },
     { header: 'Subtotal', cell: (row) => row.subtotal ?? '-' },
     { header: 'Cuenta credito', cell: (row) => row.cta_credito_id ?? '-' },
@@ -109,33 +271,39 @@ export function FacturasPage() {
             <Button
               variant="secondary"
               className="min-h-8 px-3"
-              onClick={() => setDetailId(id)}
+              isLoading={downloadingId === id}
+              onClick={() => void downloadFactura(row)}
             >
-              Ver
+              <Download className="h-4 w-4" />
+              Descargar
             </Button>
-            <Button
-              variant="secondary"
-              className="min-h-8 px-3"
-              onClick={() => {
-                setEditing(row)
-                form.reset({
-                  folio: row.folio ?? '',
-                  subtotal: String(row.subtotal ?? ''),
-                  cta_credito_id: String(row.cta_credito_id ?? ''),
-                  ejecutivo_id: String(row.ejecutivo_id ?? ''),
-                  cotizacion_id: String(row.cotizacion_id ?? ''),
-                })
-              }}
-            >
-              Editar
-            </Button>
-            <Button
-              variant="danger"
-              className="min-h-8 px-3"
-              onClick={() => setDeleteId(id)}
-            >
-              <Trash2 className="h-4 w-4" />
-            </Button>
+            {canUpdate ? (
+              <Button
+                variant="secondary"
+                className="min-h-8 px-3"
+                onClick={() => {
+                  setEditing(row)
+                  form.reset({
+                    folio: row.folio ?? '',
+                    subtotal: String(row.subtotal ?? ''),
+                    cta_credito_id: String(row.cta_credito_id ?? ''),
+                    ejecutivo_id: String(row.ejecutivo_id ?? ''),
+                    cotizacion_id: String(row.cotizacion_id ?? ''),
+                  })
+                }}
+              >
+                Editar
+              </Button>
+            ) : null}
+            {canDelete ? (
+              <Button
+                variant="danger"
+                className="min-h-8 px-3"
+                onClick={() => setDeleteId(id)}
+              >
+                <Trash2 className="h-4 w-4" />
+              </Button>
+            ) : null}
           </div>
         )
       },
@@ -156,6 +324,47 @@ export function FacturasPage() {
   function closeForm() {
     setEditing(null)
     form.reset()
+  }
+
+  async function downloadFactura(row: Factura) {
+    const facturaId = getRecordId(row)
+    if (!activeClienteId || !facturaId) return
+
+    setDownloadingId(facturaId)
+    try {
+      const detail = await getFacturaDetalle(idUsuario, activeClienteId, facturaId)
+      const factura = { ...row, ...detail }
+      const clienteNombre = clientesOptions.data?.find(
+        (option) => option.value === activeClienteId,
+      )?.cliente.nombre
+      const ejecutivoId = String(factura.ejecutivo_id ?? '')
+      const ejecutivoOption = usuariosOptions.data?.find(
+        (option) => option.value === ejecutivoId,
+      )
+      const ejecutivoNombre =
+        factura.ejecutivo_nombre ??
+        (ejecutivoOption
+          ? `${ejecutivoOption.usuario.nombre ?? ''} ${
+              ejecutivoOption.usuario.apellido ?? ''
+            }`.trim() || ejecutivoOption.label
+          : undefined)
+
+      downloadFacturaPdf({
+        factura,
+        facturaId,
+        clienteId: activeClienteId,
+        clienteNombre,
+        ejecutivoNombre,
+      })
+    } catch (error: unknown) {
+      showToast({
+        title: 'No se pudo descargar',
+        description: getMessageFromUnknown(error),
+        variant: 'error',
+      })
+    } finally {
+      setDownloadingId(undefined)
+    }
   }
 
   function onSubmit(values: FacturaForm) {
@@ -209,10 +418,12 @@ export function FacturasPage() {
                 Perfil
               </Link>
             ) : null}
-            <Button onClick={openCreate} disabled={!activeClienteId}>
-              <Plus className="h-4 w-4" />
-              Nueva factura
-            </Button>
+            {canCreate ? (
+              <Button onClick={openCreate} disabled={!activeClienteId}>
+                <Plus className="h-4 w-4" />
+                Nueva factura
+              </Button>
+            ) : null}
           </>
         }
       />
@@ -302,19 +513,6 @@ export function FacturasPage() {
             </Button>
           </div>
         </form>
-      </Modal>
-      <Modal
-        open={Boolean(detailId)}
-        title="Detalle de factura"
-        onClose={() => setDetailId(undefined)}
-      >
-        {detalle.isLoading ? (
-          <p className="text-sm text-slate-500">Cargando...</p>
-        ) : (
-          <pre className="overflow-auto rounded-md bg-slate-950 p-4 text-xs text-slate-50">
-            {JSON.stringify(detalle.data, null, 2)}
-          </pre>
-        )}
       </Modal>
       <ConfirmDialog
         open={Boolean(deleteId)}

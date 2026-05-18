@@ -20,6 +20,61 @@ function normalizeWriteResponse(response: { status: number; data: unknown }) {
   return data
 }
 
+function getGroupId(grupo: Grupo) {
+  const record = grupo as Record<string, unknown>
+  return String(
+    grupo.groupId ??
+      grupo.id ??
+      record.idGrupo ??
+      record.grupoId ??
+      record.group_id ??
+      '',
+  )
+}
+
+function getPermissionName(permiso: Permiso) {
+  const record = permiso as Record<string, unknown>
+  const value =
+    permiso.name ??
+    permiso.nombre ??
+    record.permissionName ??
+    record.permiso ??
+    record.clave ??
+    record.codigo ??
+    record.key
+
+  return value === undefined || value === null ? '' : String(value).trim()
+}
+
+export async function fetchUserPermissions(userId: string) {
+  const gruposResponse = await httpClient.post(
+    endpoints.permisos.gruposPorUsuario(userId),
+    undefined,
+    PERMISOS_READ_CONFIG,
+  )
+  const grupos = toArray<Grupo>(parseApiData(gruposResponse.data))
+  const permissions = new Set<string>()
+
+  await Promise.all(
+    grupos.map(async (grupo) => {
+      const groupId = getGroupId(grupo)
+      if (!groupId) return
+
+      const permisosResponse = await httpClient.post(
+        endpoints.permisos.permisosPorGrupoPost(userId, groupId),
+        undefined,
+        PERMISOS_READ_CONFIG,
+      )
+      toArray<Permiso>(parseApiData(permisosResponse.data)).forEach((permiso) => {
+        const name = getPermissionName(permiso)
+        if (name) permissions.add(name)
+      })
+    }),
+  )
+
+  return [...permissions]
+}
+
 export function useGruposPorUsuario(id: string) {
   return useQuery({
     queryKey: queryKeys.permisos.gruposUsuario(id),

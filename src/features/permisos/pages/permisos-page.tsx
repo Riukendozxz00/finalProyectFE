@@ -10,6 +10,7 @@ import {
   useTodosGrupos,
 } from '../api'
 import type { Grupo, Permiso, PermisoAccion } from '../types'
+import { permissions } from '@/features/auth/permissions'
 import { useSessionStore } from '@/features/auth/session'
 import { getMessageFromUnknown } from '@/shared/api/response'
 import { Button } from '@/shared/ui/button'
@@ -23,6 +24,7 @@ import { getDisplayName, getRecordId } from '@/shared/utils/records'
 
 export function PermisosPage() {
   const currentUser = useSessionStore((state) => state.user)
+  const can = useSessionStore((state) => state.can)
   const { showToast } = useToast()
   const [id, setId] = useState(currentUser?.id ?? '')
   const [empleadoId, setEmpleadoId] = useState(currentUser?.id ?? '')
@@ -40,6 +42,7 @@ export function PermisosPage() {
   const permisosPosicion = usePermisosPorPosicion(empleadoId, groupId, positionId)
   const cambiarPermiso = useCambiarPermiso()
   const cambiarTodos = useCambiarTodosPermisos()
+  const canAssign = can(permissions.permisos.assign)
 
   const groupColumns: Array<Column<Grupo>> = [
     { header: 'ID', cell: (row) => getRecordId(row) },
@@ -165,24 +168,26 @@ export function PermisosPage() {
             <option value="remove">remove</option>
           </Select>
         </div>
-        <div className="flex flex-wrap gap-2">
-          <Button
-            onClick={runPermissionChange}
-            disabled={!empleadoId || !groupId || !RolAsignado || !permissionId}
-            isLoading={cambiarPermiso.isPending}
-          >
-            <ShieldCheck className="h-4 w-4" />
-            Aplicar permiso
-          </Button>
-          <Button
-            variant="secondary"
-            onClick={runAllChange}
-            disabled={!empleadoId || !groupId || !RolAsignado}
-            isLoading={cambiarTodos.isPending}
-          >
-            Aplicar todos
-          </Button>
-        </div>
+        {canAssign ? (
+          <div className="flex flex-wrap gap-2">
+            <Button
+              onClick={runPermissionChange}
+              disabled={!empleadoId || !groupId || !RolAsignado || !permissionId}
+              isLoading={cambiarPermiso.isPending}
+            >
+              <ShieldCheck className="h-4 w-4" />
+              Aplicar permiso
+            </Button>
+            <Button
+              variant="secondary"
+              onClick={runAllChange}
+              disabled={!empleadoId || !groupId || !RolAsignado}
+              isLoading={cambiarTodos.isPending}
+            >
+              Aplicar todos
+            </Button>
+          </div>
+        ) : null}
       </Card>
 
       <section className="grid gap-4 xl:grid-cols-2">

@@ -2,9 +2,9 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { Plus, Search, Trash2 } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { useForm } from 'react-hook-form'
+import { Link } from 'react-router-dom'
 import { z } from 'zod'
 import {
-  useBaseDetalle,
   useBases,
   useCrearBase,
   useCrearBasePorCliente,
@@ -12,6 +12,7 @@ import {
   useModificarBase,
 } from '../api'
 import type { Base } from '../types'
+import { permissions } from '@/features/auth/permissions'
 import { useSessionStore } from '@/features/auth/session'
 import { useClientesOptions } from '@/features/clientes/api'
 import { useUsuariosOptions } from '@/features/usuarios/api'
@@ -32,6 +33,40 @@ import { emptyToNull, getRecordId } from '@/shared/utils/records'
 
 const PAGE_SIZE = 10
 
+function getClienteId(base: Base) {
+  return base.cliente_id ?? base.clienteId
+}
+
+function getEjecutivoId(base: Base) {
+  return base.ejecutivo_id ?? base.ejecutivoId
+}
+
+function getClienteName(base: Base, namesById: Map<string, string>) {
+  const record = base as Record<string, unknown>
+  const id = getClienteId(base)
+  const name =
+    base.cliente_nombre ??
+    base.clienteNombre ??
+    record.nombre_cliente ??
+    record.cliente ??
+    (id !== undefined ? namesById.get(String(id)) : undefined)
+
+  return name ? String(name) : id !== undefined ? String(id) : '-'
+}
+
+function getEjecutivoName(base: Base, namesById: Map<string, string>) {
+  const record = base as Record<string, unknown>
+  const id = getEjecutivoId(base)
+  const name =
+    base.ejecutivo_nombre ??
+    base.ejecutivoNombre ??
+    record.nombre_ejecutivo ??
+    record.ejecutivo ??
+    (id !== undefined && id !== null ? namesById.get(String(id)) : undefined)
+
+  return name ? String(name) : id !== undefined && id !== null ? String(id) : '-'
+}
+
 const baseSchema = z.object({
   cliente_id: z.string().min(1, 'Cliente requerido'),
   ejecutivo_id: z.string().optional(),
@@ -43,23 +78,25 @@ type BaseForm = z.infer<typeof baseSchema>
 
 export function BasesPage() {
   const currentUser = useSessionStore((state) => state.user)
+  const can = useSessionStore((state) => state.can)
   const idUsuario = currentUser?.id ?? ''
   const { showToast } = useToast()
   const [clienteId, setClienteId] = useState('')
   const [activeClienteId, setActiveClienteId] = useState<string>()
   const [page, setPage] = useState(1)
   const [editing, setEditing] = useState<Base | null>(null)
-  const [detailId, setDetailId] = useState<string>()
   const [deleteId, setDeleteId] = useState<string>()
 
   const bases = useBases(idUsuario, activeClienteId)
-  const detalle = useBaseDetalle(idUsuario, detailId)
   const crear = useCrearBase(idUsuario)
   const crearPorCliente = useCrearBasePorCliente(idUsuario, activeClienteId)
   const modificar = useModificarBase(idUsuario)
   const eliminar = useEliminarBase(idUsuario)
   const clientesOptions = useClientesOptions(idUsuario)
   const usuariosOptions = useUsuariosOptions(idUsuario)
+  const canCreate = can(permissions.bases.create)
+  const canUpdate = can(permissions.bases.update)
+  const canDelete = can(permissions.bases.delete)
 
   const form = useForm<BaseForm>({
     resolver: zodResolver(baseSchema),
@@ -70,11 +107,93 @@ export function BasesPage() {
     () => paginate(bases.data ?? [], page, PAGE_SIZE),
     [bases.data, page],
   )
+  const clientesById = useMemo(
+    () =>
+      new Map(
+        (clientesOptions.data ?? []).map((option) => [
+          option.value,
+          option.cliente.nombre,
+        ]),
+      ),
+    [clientesOptions.data],
+  )
+  const usuariosById = useMemo(
+    () =>
+      new Map(
+        (usuariosOptions.data ?? []).map((option) => [
+          option.value,
+          `${option.usuario.nombre ?? ''} ${option.usuario.apellido ?? ''}`.trim() ||
+            option.label,
+        ]),
+      ),
+    [usuariosOptions.data],
+  )
+
+  async function copyId(value: unknown, label: string) {
+    if (value === undefined || value === null || value === '') return
+    const text = String(value)
+
+    try {
+      await navigator.clipboard.writeText(text)
+      showToast({
+        title: `${label} copiado`,
+        description: text,
+        variant: 'success',
+      })
+    } catch {
+      showToast({
+        title: 'No se pudo copiar',
+        description: text,
+        variant: 'error',
+      })
+    }
+  }
+
+  function CopyableName({
+    name,
+    id,
+    label,
+  }: {
+    name: string
+    id: unknown
+    label: string
+  }) {
+    if (id === undefined || id === null || id === '') return <span>{name}</span>
+
+    return (
+      <button
+        type="button"
+        className="rounded px-1 text-left font-semibold text-kleep-blue underline-offset-2 hover:bg-kleep-soft hover:underline"
+        title={`Copiar ${label}: ${String(id ?? '')}`}
+        onClick={() => void copyId(id, label)}
+      >
+        {name}
+      </button>
+    )
+  }
 
   const columns: Array<Column<Base>> = [
-    { header: 'ID', cell: (row) => getRecordId(row) },
-    { header: 'Cliente ID', cell: (row) => row.cliente_id ?? row.clienteId ?? '-' },
-    { header: 'Ejecutivo ID', cell: (row) => row.ejecutivo_id ?? row.ejecutivoId ?? '-' },
+    { header: 'Numero de base', cell: (row) => getRecordId(row) },
+    {
+      header: 'Cliente',
+      cell: (row) => (
+        <CopyableName
+          name={getClienteName(row, clientesById)}
+          id={getClienteId(row)}
+          label="Cliente ID"
+        />
+      ),
+    },
+    {
+      header: 'Ejecutivo',
+      cell: (row) => (
+        <CopyableName
+          name={getEjecutivoName(row, usuariosById)}
+          id={getEjecutivoId(row)}
+          label="Ejecutivo ID"
+        />
+      ),
+    },
     { header: 'Direccion', cell: (row) => row.direccion ?? '-' },
     { header: 'Localidad', cell: (row) => row.localidad ?? '-' },
     {
@@ -83,35 +202,38 @@ export function BasesPage() {
         const id = getRecordId(row)
         return (
           <div className="flex flex-wrap gap-2">
-            <Button
-              variant="secondary"
-              className="min-h-8 px-3"
-              onClick={() => setDetailId(id)}
+            <Link
+              to={`/bases/${id}`}
+              className="inline-flex min-h-8 items-center justify-center rounded-md border border-black/10 bg-white px-3 text-sm font-semibold text-kleep-ink transition hover:border-kleep-blue/30 hover:bg-kleep-soft"
             >
               Ver
-            </Button>
-            <Button
-              variant="secondary"
-              className="min-h-8 px-3"
-              onClick={() => {
-                setEditing(row)
-                form.reset({
-                  cliente_id: String(row.cliente_id ?? row.clienteId ?? ''),
-                  ejecutivo_id: String(row.ejecutivo_id ?? row.ejecutivoId ?? ''),
-                  direccion: row.direccion ?? '',
-                  localidad: row.localidad ?? '',
-                })
-              }}
-            >
-              Editar
-            </Button>
-            <Button
-              variant="danger"
-              className="min-h-8 px-3"
-              onClick={() => setDeleteId(id)}
-            >
-              <Trash2 className="h-4 w-4" />
-            </Button>
+            </Link>
+            {canUpdate ? (
+              <Button
+                variant="secondary"
+                className="min-h-8 px-3"
+                onClick={() => {
+                  setEditing(row)
+                  form.reset({
+                    cliente_id: String(row.cliente_id ?? row.clienteId ?? ''),
+                    ejecutivo_id: String(row.ejecutivo_id ?? row.ejecutivoId ?? ''),
+                    direccion: row.direccion ?? '',
+                    localidad: row.localidad ?? '',
+                  })
+                }}
+              >
+                Editar
+              </Button>
+            ) : null}
+            {canDelete ? (
+              <Button
+                variant="danger"
+                className="min-h-8 px-3"
+                onClick={() => setDeleteId(id)}
+              >
+                <Trash2 className="h-4 w-4" />
+              </Button>
+            ) : null}
           </div>
         )
       },
@@ -172,10 +294,12 @@ export function BasesPage() {
         title="Bases"
         description="Listado con filtro opcional por cliente, alta, edicion y detalle."
         actions={
-          <Button onClick={openCreate}>
-            <Plus className="h-4 w-4" />
-            Nueva base
-          </Button>
+          canCreate ? (
+            <Button onClick={openCreate}>
+              <Plus className="h-4 w-4" />
+              Nueva base
+            </Button>
+          ) : null
         }
       />
 
@@ -275,19 +399,6 @@ export function BasesPage() {
         </form>
       </Modal>
 
-      <Modal
-        open={Boolean(detailId)}
-        title="Detalle de base"
-        onClose={() => setDetailId(undefined)}
-      >
-        {detalle.isLoading ? (
-          <p className="text-sm text-slate-500">Cargando...</p>
-        ) : (
-          <pre className="overflow-auto rounded-md bg-slate-950 p-4 text-xs text-slate-50">
-            {JSON.stringify(detalle.data, null, 2)}
-          </pre>
-        )}
-      </Modal>
       <ConfirmDialog
         open={Boolean(deleteId)}
         title="Eliminar base"

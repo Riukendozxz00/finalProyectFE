@@ -46,7 +46,8 @@ export function useUsuariosOptions(empleadoId: string) {
             usuario.posicion_id ??
             usuario.posicionId ??
             'Sin posicion'
-          const region = usuario.region ?? usuario.regionId ?? 'Sin region'
+          const region =
+            usuario.region_nombre ?? usuario.region ?? usuario.regionId ?? 'Sin region'
 
           return {
             value,

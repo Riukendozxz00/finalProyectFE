@@ -15,6 +15,8 @@ export interface Cliente {
   total_cotizaciones?: number
   total_facturas?: number
   status?: string
+  status_descripcion?: string
+  statusDescripcion?: string
   [key: string]: unknown
 }
 

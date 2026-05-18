@@ -12,25 +12,41 @@ export interface SessionUser {
 
 interface SessionState {
   user: SessionUser | null
+  permissions: string[]
+  permissionsLoaded: boolean
   setUser: (user: SessionUser) => void
+  setPermissions: (permissions: string[]) => void
+  can: (permission: string) => boolean
   clearSession: () => void
 }
 
 export const useSessionStore = create<SessionState>()(
   persist(
-    (set) => ({
+    (set, get) => ({
       user: null,
+      permissions: [],
+      permissionsLoaded: false,
       setUser: (user) => {
         setAccessToken(user.token)
-        set({ user })
+        set({ user, permissions: [], permissionsLoaded: false })
+      },
+      setPermissions: (permissions) => {
+        set({ permissions, permissionsLoaded: true })
+      },
+      can: (permission) => {
+        const permissions = get().permissions ?? []
+        return permissions.includes(permission)
       },
       clearSession: () => {
         setAccessToken(null)
-        set({ user: null })
+        set({ user: null, permissions: [], permissionsLoaded: false })
       },
     }),
     {
       name: 'app.session',
+      partialize: (state) => ({
+        user: state.user,
+      }),
     },
   ),
 )

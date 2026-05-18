@@ -12,25 +12,41 @@ import {
 } from 'lucide-react'
 import { useState } from 'react'
 import { NavLink, Outlet } from 'react-router-dom'
+import { permissions } from '@/features/auth/permissions'
 import { useSessionStore } from '@/features/auth/session'
 import { Button } from '@/shared/ui/button'
 import { cn } from '@/shared/utils/cn'
 
 const navItems = [
-  { to: '/', label: 'Dashboard', icon: Home },
-  { to: '/usuarios', label: 'Usuarios', icon: Users },
-  { to: '/permisos', label: 'Permisos', icon: ShieldCheck },
-  { to: '/clientes', label: 'Clientes', icon: Building2 },
-  { to: '/cuentas-credito', label: 'Cuentas credito', icon: CreditCard },
-  { to: '/bases', label: 'Bases', icon: KeyRound },
-  { to: '/cotizaciones', label: 'Cotizaciones', icon: FileText },
-  { to: '/facturas', label: 'Facturas', icon: ReceiptText },
+  { to: '/', label: 'Dashboard', icon: Home, permission: permissions.dashboard.view },
+  { to: '/usuarios', label: 'Usuarios', icon: Users, permission: permissions.usuarios.view },
+  { to: '/permisos', label: 'Permisos', icon: ShieldCheck, permission: permissions.permisos.view },
+  { to: '/clientes', label: 'Clientes', icon: Building2, permission: permissions.clientes.view },
+  {
+    to: '/cuentas-credito',
+    label: 'Cuentas credito',
+    icon: CreditCard,
+    permission: permissions.cuentasCredito.view,
+  },
+  { to: '/bases', label: 'Bases', icon: KeyRound, permission: permissions.bases.view },
+  {
+    to: '/cotizaciones',
+    label: 'Cotizaciones',
+    icon: FileText,
+    permission: permissions.cotizaciones.view,
+  },
+  { to: '/facturas', label: 'Facturas', icon: ReceiptText, permission: permissions.facturas.view },
 ]
 
 export function AppLayout() {
   const [isOpen, setIsOpen] = useState(false)
   const user = useSessionStore((state) => state.user)
+  const can = useSessionStore((state) => state.can)
+  const permissionsLoaded = useSessionStore((state) => state.permissionsLoaded)
   const clearSession = useSessionStore((state) => state.clearSession)
+  const visibleNavItems = permissionsLoaded
+    ? navItems.filter((item) => can(item.permission))
+    : []
 
   return (
     <div className="min-h-screen bg-[#f6f8ff]">
@@ -51,7 +67,7 @@ export function AppLayout() {
         </div>
 
         <nav className="grid gap-1 p-3">
-          {navItems.map((item) => {
+          {visibleNavItems.map((item) => {
             const Icon = item.icon
             return (
               <NavLink

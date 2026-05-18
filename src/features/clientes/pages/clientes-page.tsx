@@ -12,6 +12,7 @@ import {
   useReactivarCliente,
 } from '../api'
 import type { Cliente, ClienteFilters } from '../types'
+import { permissions } from '@/features/auth/permissions'
 import { useSessionStore } from '@/features/auth/session'
 import { getMessageFromUnknown } from '@/shared/api/response'
 import { Button } from '@/shared/ui/button'
@@ -34,6 +35,54 @@ import { paginate } from '@/shared/utils/pagination'
 
 const PAGE_SIZE = 10
 
+function getClienteStatusLabel(cliente: Cliente) {
+  const record = cliente as Record<string, unknown>
+  const description =
+    cliente.status_descripcion ??
+    cliente.statusDescripcion ??
+    record.estatus_descripcion ??
+    record.descripcion_status ??
+    record.statusDescription
+
+  if (description !== undefined && description !== null && String(description).trim()) {
+    return String(description)
+  }
+
+  const rawStatus = cliente.status ?? record.estatus ?? record.statusId
+  if (rawStatus === undefined || rawStatus === null || rawStatus === '') return '-'
+
+  const status = String(rawStatus)
+  if (status === '0') return 'Inactivo'
+  if (status === '1') return 'Activo'
+  return status
+}
+
+function ClienteStatusBadge({ cliente }: { cliente: Cliente }) {
+  const label = getClienteStatusLabel(cliente)
+  const normalized = label.toLowerCase()
+  const tone =
+    normalized === 'activo'
+      ? 'border-emerald-100 bg-emerald-50 text-emerald-700'
+      : normalized === 'inactivo'
+        ? 'border-red-100 bg-red-50 text-red-700'
+        : 'border-slate-200 bg-slate-50 text-slate-600'
+  const dot =
+    normalized === 'activo'
+      ? 'bg-emerald-500'
+      : normalized === 'inactivo'
+        ? 'bg-red-500'
+        : 'bg-slate-400'
+
+  return (
+    <span
+      className={`inline-flex items-center gap-2 rounded-full border px-2.5 py-1 text-xs font-bold ${tone}`}
+    >
+      <span className={`h-2 w-2 rounded-full ${dot}`} />
+      {label}
+    </span>
+  )
+}
+
 const filterSchema = z.object({
   nombre: z.string().optional(),
   direccion: z.string().optional(),
@@ -54,6 +103,7 @@ type ClienteForm = z.infer<typeof clienteSchema>
 
 export function ClientesPage() {
   const currentUser = useSessionStore((state) => state.user)
+  const can = useSessionStore((state) => state.can)
   const idUsuario = currentUser?.id ?? ''
   const { showToast } = useToast()
   const navigate = useNavigate()
@@ -77,6 +127,9 @@ export function ClientesPage() {
   const modificar = useModificarCliente(idUsuario)
   const eliminar = useEliminarCliente(idUsuario)
   const reactivar = useReactivarCliente(idUsuario)
+  const canCreate = can(permissions.clientes.create)
+  const canUpdate = can(permissions.clientes.update)
+  const canDelete = can(permissions.clientes.delete)
 
   const pageRows = useMemo(
     () => paginate(clientes.data ?? [], page, PAGE_SIZE),
@@ -100,7 +153,7 @@ export function ClientesPage() {
     },
     { header: 'Cotizaciones', cell: (row) => row.total_cotizaciones ?? 0 },
     { header: 'Facturas', cell: (row) => row.total_facturas ?? 0 },
-    { header: 'Status', cell: (row) => row.status ?? '-' },
+    { header: 'Status', cell: (row) => <ClienteStatusBadge cliente={row} /> },
     {
       header: 'Acciones',
       cell: (row) => {
@@ -114,27 +167,31 @@ export function ClientesPage() {
             >
               Ver
             </Button>
-            <Button
-              variant="secondary"
-              className="min-h-8 px-3"
-              onClick={() => {
-                setEditing(row)
-                clienteForm.reset({
-                  nombre: row.nombre ?? '',
-                  direccion: row.direccion ?? '',
-                })
-              }}
-            >
-              Editar
-            </Button>
-            <Button
-              variant="danger"
-              className="min-h-8 px-3"
-              onClick={() => setDeleteId(id)}
-            >
-              <Trash2 className="h-4 w-4" />
-            </Button>
-            {String(row.status ?? '1') === '0' ? (
+            {canUpdate ? (
+              <Button
+                variant="secondary"
+                className="min-h-8 px-3"
+                onClick={() => {
+                  setEditing(row)
+                  clienteForm.reset({
+                    nombre: row.nombre ?? '',
+                    direccion: row.direccion ?? '',
+                  })
+                }}
+              >
+                Editar
+              </Button>
+            ) : null}
+            {canDelete ? (
+              <Button
+                variant="danger"
+                className="min-h-8 px-3"
+                onClick={() => setDeleteId(id)}
+              >
+                <Trash2 className="h-4 w-4" />
+              </Button>
+            ) : null}
+            {canUpdate && String(row.status ?? '1') === '0' ? (
               <Button
                 variant="secondary"
                 className="min-h-8 px-3"
@@ -216,10 +273,12 @@ export function ClientesPage() {
         title="Clientes"
         description="Listado con filtros, detalle, alta, edicion y eliminacion logica."
         actions={
-          <Button onClick={openCreate}>
-            <Plus className="h-4 w-4" />
-            Nuevo cliente
-          </Button>
+          canCreate ? (
+            <Button onClick={openCreate}>
+              <Plus className="h-4 w-4" />
+              Nuevo cliente
+            </Button>
+          ) : null
         }
       />
 
