@@ -3,7 +3,7 @@ name: CI/CD Deploy React Nginx
 on:
   push:
     branches:
-      - main
+      - firstShot
 
 jobs:
   deploy:
