@@ -1,0 +1,131 @@
+name: CI/CD Deploy React Nginx
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Notificar Discord - Inicio Deploy
+        run: |
+          curl -s -X POST "${{ secrets.DISCORD_WEBHOOK }}" \
+            -H "Content-Type: application/json" \
+            -d '{
+              "embeds": [{
+                "title": "🚀 Iniciando Deploy",
+                "description": "Un nuevo despliegue de React acaba de comenzar.",
+                "color": 3447003,
+                "fields": [
+                  { "name": "📦 Repositorio", "value": "`${{ github.repository }}`", "inline": true },
+                  { "name": "👤 Autor", "value": "`${{ github.actor }}`", "inline": true },
+                  { "name": "🌿 Rama", "value": "`${{ github.ref_name }}`", "inline": true },
+                  { "name": "🔖 Commit", "value": "`${{ github.sha }}`", "inline": false },
+                  { "name": "💬 Mensaje", "value": "${{ github.event.head_commit.message }}", "inline": false }
+                ],
+                "footer": {
+                  "text": "React CI/CD • GitHub Actions",
+                  "icon_url": "https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png"
+                },
+                "timestamp": "${{ github.event.head_commit.timestamp }}"
+              }]
+            }'
+
+      - name: Deploy React en servidor Nginx
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.HOST }}
+          username: ${{ secrets.USERNAME }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          port: ${{ secrets.PORT || '22' }}
+          script: |
+            set -e
+
+            export NVM_DIR="$HOME/.nvm"
+            [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+
+            echo "📁 Entrando al proyecto..."
+            cd ${{ secrets.PROJECT_PATH }}
+
+            echo "🔄 Actualizando repositorio..."
+            git pull origin main
+
+            echo "📦 Instalando dependencias..."
+            npm ci
+
+            echo "🏗️ Generando build de React..."
+            npm run build
+
+            echo "🧹 Limpiando carpeta pública de Nginx..."
+            sudo rm -rf ${{ secrets.NGINX_PATH }}/*
+
+            echo "🚚 Copiando build a Nginx..."
+            sudo cp -r ${{ secrets.BUILD_PATH }}/* ${{ secrets.NGINX_PATH }}/
+
+            echo "🔐 Ajustando permisos..."
+            sudo chown -R www-data:www-data ${{ secrets.NGINX_PATH }}
+            sudo chmod -R 755 ${{ secrets.NGINX_PATH }}
+
+            echo "🧪 Validando configuración de Nginx..."
+            sudo nginx -t
+
+            echo "♻️ Recargando Nginx..."
+            sudo systemctl reload nginx
+
+            echo "✅ Deploy completado correctamente."
+
+      - name: Notificar Discord - Deploy exitoso
+        if: success()
+        run: |
+          curl -s -X POST "${{ secrets.DISCORD_WEBHOOK }}" \
+            -H "Content-Type: application/json" \
+            -d '{
+              "embeds": [{
+                "title": "✅ Deploy Completado con Éxito",
+                "description": "El proyecto React fue compilado y publicado correctamente en Nginx.",
+                "color": 3066993,
+                "fields": [
+                  { "name": "📦 Repositorio", "value": "`${{ github.repository }}`", "inline": true },
+                  { "name": "👤 Autor", "value": "`${{ github.actor }}`", "inline": true },
+                  { "name": "🌿 Rama", "value": "`${{ github.ref_name }}`", "inline": true },
+                  { "name": "🔖 Commit", "value": "`${{ github.sha }}`", "inline": false },
+                  { "name": "🔗 Ver acción", "value": "[Abrir en GitHub](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})", "inline": false }
+                ],
+                "footer": {
+                  "text": "React CI/CD • GitHub Actions",
+                  "icon_url": "https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png"
+                },
+                "timestamp": "${{ github.event.head_commit.timestamp }}"
+              }]
+            }'
+
+      - name: Notificar Discord - Deploy fallido
+        if: failure()
+        run: |
+          curl -s -X POST "${{ secrets.DISCORD_WEBHOOK }}" \
+            -H "Content-Type: application/json" \
+            -d '{
+              "embeds": [{
+                "title": "❌ Deploy Fallido",
+                "description": "Ocurrió un error durante el despliegue del proyecto React.",
+                "color": 15158332,
+                "fields": [
+                  { "name": "📦 Repositorio", "value": "`${{ github.repository }}`", "inline": true },
+                  { "name": "👤 Autor", "value": "`${{ github.actor }}`", "inline": true },
+                  { "name": "🌿 Rama", "value": "`${{ github.ref_name }}`", "inline": true },
+                  { "name": "🔖 Commit", "value": "`${{ github.sha }}`", "inline": false },
+                  { "name": "🔗 Ver logs", "value": "[Revisar en GitHub](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})", "inline": false }
+                ],
+                "footer": {
+                  "text": "React CI/CD • GitHub Actions",
+                  "icon_url": "https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png"
+                },
+                "timestamp": "${{ github.event.head_commit.timestamp }}"
+              }]
+            }'
