@@ -54,7 +54,7 @@ jobs:
             cd ${{ secrets.PROJECT_PATH }}
 
             echo "🔄 Actualizando repositorio..."
-            git pull origin main
+            git pull origin firstShot
 
             echo "📦 Instalando dependencias..."
             npm ci
