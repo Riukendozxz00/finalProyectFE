@@ -6,10 +6,12 @@ export interface Usuario {
   apellido?: string
   posicion_id?: number
   posicionId?: number
+  posicion_nombre?: string
   posicion?: string
   telefono?: string | null
   correo?: string | null
   regionId?: number
+  region_nombre?: string
   region?: string
   [key: string]: unknown
 }

@@ -46,7 +46,8 @@ export function useUsuariosOptions(empleadoId: string) {
             usuario.posicion_id ??
             usuario.posicionId ??
             'Sin posicion'
-          const region = usuario.region ?? usuario.regionId ?? 'Sin region'
+          const region =
+            usuario.region_nombre ?? usuario.region ?? usuario.regionId ?? 'Sin region'
 
           return {
             value,
@@ -65,7 +66,12 @@ export function useUsuarioDetalle(empleadoId: string) {
     enabled: Boolean(empleadoId),
     queryFn: async () => {
       const response = await httpClient.get(endpoints.usuarios.detalle(empleadoId))
-      return parseApiData<Usuario>(response.data)
+      const data = parseApiData<{ usuario?: Usuario; user?: Usuario } | Usuario>(
+        response.data,
+      )
+      if ('usuario' in Object(data)) return (data as { usuario: Usuario }).usuario
+      if ('user' in Object(data)) return (data as { user: Usuario }).user
+      return data as Usuario
     },
   })
 }

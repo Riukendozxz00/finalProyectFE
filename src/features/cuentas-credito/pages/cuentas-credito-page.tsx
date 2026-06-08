@@ -11,6 +11,7 @@ import {
   useModificarCuentaCredito,
 } from '../api'
 import type { CuentaCredito } from '../types'
+import { permissions } from '@/features/auth/permissions'
 import { useSessionStore } from '@/features/auth/session'
 import { useClientesOptions } from '@/features/clientes/api'
 import { getMessageFromUnknown } from '@/shared/api/response'
@@ -38,6 +39,7 @@ type CuentaForm = z.infer<typeof cuentaSchema>
 
 export function CuentasCreditoPage() {
   const currentUser = useSessionStore((state) => state.user)
+  const can = useSessionStore((state) => state.can)
   const idUsuario = currentUser?.id ?? ''
   const { showToast } = useToast()
   const [clienteId, setClienteId] = useState('')
@@ -52,6 +54,9 @@ export function CuentasCreditoPage() {
   const modificar = useModificarCuentaCredito(idUsuario)
   const eliminar = useEliminarCuentaCredito(idUsuario)
   const clientesOptions = useClientesOptions(idUsuario)
+  const canCreate = can(permissions.cuentasCredito.create)
+  const canUpdate = can(permissions.cuentasCredito.update)
+  const canDelete = can(permissions.cuentasCredito.delete)
 
   const form = useForm<CuentaForm>({
     resolver: zodResolver(cuentaSchema),
@@ -64,7 +69,7 @@ export function CuentasCreditoPage() {
   )
 
   const columns: Array<Column<CuentaCredito>> = [
-    { header: 'ID', cell: (row) => getRecordId(row) },
+    { header: 'Cuenta de credito', cell: (row) => getRecordId(row) },
     { header: 'Cliente ID', cell: (row) => row.cliente_id ?? row.clienteId ?? '-' },
     {
       header: 'Limite credito',
@@ -76,26 +81,30 @@ export function CuentasCreditoPage() {
         const id = getRecordId(row)
         return (
           <div className="flex flex-wrap gap-2">
-            <Button
-              variant="secondary"
-              className="min-h-8 px-3"
-              onClick={() => {
-                setEditing(row)
-                form.reset({
-                  cliente_id: String(row.cliente_id ?? row.clienteId ?? activeClienteId),
-                  limite_credito: String(row.limite_credito ?? row.limiteCredito ?? ''),
-                })
-              }}
-            >
-              Editar
-            </Button>
-            <Button
-              variant="danger"
-              className="min-h-8 px-3"
-              onClick={() => setDeleteId(id)}
-            >
-              <Trash2 className="h-4 w-4" />
-            </Button>
+            {canUpdate ? (
+              <Button
+                variant="secondary"
+                className="min-h-8 px-3"
+                onClick={() => {
+                  setEditing(row)
+                  form.reset({
+                    cliente_id: String(row.cliente_id ?? row.clienteId ?? activeClienteId),
+                    limite_credito: String(row.limite_credito ?? row.limiteCredito ?? ''),
+                  })
+                }}
+              >
+                Editar
+              </Button>
+            ) : null}
+            {canDelete ? (
+              <Button
+                variant="danger"
+                className="min-h-8 px-3"
+                onClick={() => setDeleteId(id)}
+              >
+                <Trash2 className="h-4 w-4" />
+              </Button>
+            ) : null}
           </div>
         )
       },
@@ -149,10 +158,12 @@ export function CuentasCreditoPage() {
         title="Cuentas de credito"
         description="Alta, edicion de limite, listado por cliente y eliminacion."
         actions={
-          <Button onClick={openCreate} disabled={!activeClienteId}>
-            <Plus className="h-4 w-4" />
-            Nueva cuenta
-          </Button>
+          canCreate ? (
+            <Button onClick={openCreate} disabled={!activeClienteId}>
+              <Plus className="h-4 w-4" />
+              Nueva cuenta
+            </Button>
+          ) : null
         }
       />
 

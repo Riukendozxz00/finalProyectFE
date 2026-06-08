@@ -1,5 +1,11 @@
 export const queryKeys = {
   session: ['session'] as const,
+  dashboard: {
+    all: ['dashboard'] as const,
+    conversion: (filters?: unknown) => ['dashboard', 'conversion', filters] as const,
+    sales: (filters?: unknown) => ['dashboard', 'sales', filters] as const,
+    equipo: (filters?: unknown) => ['dashboard', 'equipo', filters] as const,
+  },
   usuarios: {
     all: ['usuarios'] as const,
     list: (empleadoId: string) => ['usuarios', 'list', empleadoId] as const,
@@ -35,6 +41,8 @@ export const queryKeys = {
       ['bases', 'list', idUsuario, clienteId] as const,
     detail: (idUsuario: string, baseId: string) =>
       ['bases', 'detail', idUsuario, baseId] as const,
+    documents: (idUsuario: string, baseId: string, filters?: unknown) =>
+      ['bases', 'documents', idUsuario, baseId, filters] as const,
   },
   cotizaciones: {
     all: ['cotizaciones'] as const,

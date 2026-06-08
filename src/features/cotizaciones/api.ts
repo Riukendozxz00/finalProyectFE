@@ -44,6 +44,20 @@ export function useCotizacionDetalle(
   })
 }
 
+export async function getCotizacionDetalle(
+  idUsuario: string,
+  clienteId: string,
+  cotizacionId: string,
+) {
+  const response = await httpClient.get(
+    endpoints.cotizaciones.detalle(idUsuario, clienteId, cotizacionId),
+  )
+  const data = parseApiData<{ cotizacion?: Cotizacion } | Cotizacion>(response.data)
+  return 'cotizacion' in Object(data)
+    ? (data as { cotizacion: Cotizacion }).cotizacion
+    : (data as Cotizacion)
+}
+
 export function useCrearCotizacion(idUsuario: string, clienteId: string) {
   const queryClient = useQueryClient()
   return useMutation({

@@ -2,6 +2,11 @@ export const endpoints = {
   auth: {
     login: '/mayoreo/ejecutivos/personal/login',
   },
+  dashboard: {
+    conversion: '/dashboard/conversion',
+    sales: '/dashboard/sales',
+    equipo: '/dashboard/equipo',
+  },
   usuarios: {
     crear: (idEjecutivo: string) => `/mayoreo/ejecutivos/${idEjecutivo}/usuarios/crear`,
     listar: (empleadoId: string) => `/mayoreo/ejecutivos/${empleadoId}/usuarios/todo`,
@@ -68,6 +73,8 @@ export const endpoints = {
       `/${idUsuario}/bases/${baseId}/informacionGeneral/modificar`,
     detalle: (idUsuario: string, baseId: string) =>
       `/${idUsuario}/bases/${baseId}/informacionGeneral/obtener`,
+    documentos: (idUsuario: string, baseId: string) =>
+      `/${idUsuario}/bases/${baseId}/documentos/informacionGeneral/obtener`,
     eliminar: (idUsuario: string, baseId: string) =>
       `/${idUsuario}/bases/${baseId}/informacionGeneral/eliminar`,
   },

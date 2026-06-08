@@ -3,7 +3,13 @@ import { endpoints } from '@/shared/api/endpoints'
 import { httpClient } from '@/shared/api/httpClient'
 import { queryKeys } from '@/shared/api/queryKeys'
 import { parseApiData, toArray } from '@/shared/api/response'
-import type { Base, CrearBaseRequest, ModificarBaseRequest } from './types'
+import type {
+  Base,
+  BaseDocumentosFilters,
+  BaseDocumentosResponse,
+  CrearBaseRequest,
+  ModificarBaseRequest,
+} from './types'
 
 export function useBases(idUsuario: string, clienteId?: string) {
   return useQuery({
@@ -27,6 +33,36 @@ export function useBaseDetalle(idUsuario: string, baseId?: string) {
         endpoints.bases.detalle(idUsuario, baseId ?? ''),
       )
       return parseApiData<Base>(response.data)
+    },
+  })
+}
+
+export function useBaseDocumentos(
+  idUsuario: string,
+  baseId?: string,
+  filters: BaseDocumentosFilters = {},
+) {
+  return useQuery({
+    queryKey: baseId
+      ? queryKeys.bases.documents(idUsuario, baseId, filters)
+      : ['bases', 'documents'],
+    enabled: Boolean(idUsuario && baseId),
+    queryFn: async () => {
+      const response = await httpClient.get(
+        endpoints.bases.documentos(idUsuario, baseId ?? ''),
+        {
+          params: filters,
+        },
+      )
+      const data = parseApiData<Partial<BaseDocumentosResponse>>(response.data)
+
+      return {
+        base: data.base ?? ({} as Base),
+        fechaInicio: data.fechaInicio,
+        fechaFin: data.fechaFin,
+        cotizaciones: toArray(data.cotizaciones),
+        facturas: toArray(data.facturas),
+      } satisfies BaseDocumentosResponse
     },
   })
 }
