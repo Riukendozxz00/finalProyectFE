@@ -19,6 +19,25 @@ export interface Permiso {
   [key: string]: unknown
 }
 
+export interface PermisoPanel {
+  groupId?: string | number
+  groupName: string
+  permissionId?: string | number
+  permissionName: string
+  description?: string
+  assigned: boolean
+  asignado?: boolean
+  [key: string]: unknown
+}
+
+export interface Posicion {
+  id?: string | number
+  Id?: string | number
+  nombre?: string
+  name?: string
+  [key: string]: unknown
+}
+
 export interface CambiarPermisoPayload {
   asignador: string
   groupId: string
@@ -31,5 +50,12 @@ export interface CambiarTodosPayload {
   asignador: string
   groupId: string
   RolAsignado: string
+  accion: PermisoAccion
+}
+
+export interface CambiarPermisoNombrePayload {
+  asignador: string
+  positionId: string
+  permissionName: string
   accion: PermisoAccion
 }

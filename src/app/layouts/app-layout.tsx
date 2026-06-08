@@ -20,7 +20,6 @@ import { cn } from '@/shared/utils/cn'
 const navItems = [
   { to: '/', label: 'Dashboard', icon: Home, permission: permissions.dashboard.view },
   { to: '/usuarios', label: 'Usuarios', icon: Users, permission: permissions.usuarios.view },
-  { to: '/permisos', label: 'Permisos', icon: ShieldCheck, permission: permissions.permisos.view },
   { to: '/clientes', label: 'Clientes', icon: Building2, permission: permissions.clientes.view },
   {
     to: '/cuentas-credito',
@@ -36,6 +35,7 @@ const navItems = [
     permission: permissions.cotizaciones.view,
   },
   { to: '/facturas', label: 'Facturas', icon: ReceiptText, permission: permissions.facturas.view },
+  { to: '/permisos', label: 'Permisos', icon: ShieldCheck, permission: permissions.permisos.view },
 ]
 
 export function AppLayout() {

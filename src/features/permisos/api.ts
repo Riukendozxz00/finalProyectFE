@@ -3,7 +3,15 @@ import { endpoints } from '@/shared/api/endpoints'
 import { httpClient } from '@/shared/api/httpClient'
 import { queryKeys } from '@/shared/api/queryKeys'
 import { parseApiData, toArray } from '@/shared/api/response'
-import type { CambiarPermisoPayload, CambiarTodosPayload, Grupo, Permiso } from './types'
+import type {
+  CambiarPermisoNombrePayload,
+  CambiarPermisoPayload,
+  CambiarTodosPayload,
+  Grupo,
+  Permiso,
+  PermisoPanel,
+  Posicion,
+} from './types'
 
 const PERMISOS_READ_CONFIG = { skipUnauthorizedHandler: true }
 
@@ -47,6 +55,22 @@ function getPermissionName(permiso: Permiso) {
 }
 
 export async function fetchUserPermissions(userId: string) {
+  try {
+    const permisosResponse = await httpClient.get(
+      endpoints.permisos.permisosPorUsuario(userId),
+      PERMISOS_READ_CONFIG,
+    )
+    const directPermissions = toArray<string>(parseApiData(permisosResponse.data))
+      .map((permission) => String(permission).trim())
+      .filter(Boolean)
+
+    if (directPermissions.length) {
+      return directPermissions
+    }
+  } catch {
+    // Fall back to the original group-based permission lookup below.
+  }
+
   const gruposResponse = await httpClient.post(
     endpoints.permisos.gruposPorUsuario(userId),
     undefined,
@@ -100,6 +124,34 @@ export function useTodosGrupos(empleadoId: string) {
         PERMISOS_READ_CONFIG,
       )
       return toArray<Grupo>(parseApiData(response.data))
+    },
+  })
+}
+
+export function usePosiciones(empleadoId: string) {
+  return useQuery({
+    queryKey: queryKeys.permisos.posiciones(empleadoId),
+    enabled: Boolean(empleadoId),
+    queryFn: async () => {
+      const response = await httpClient.get(
+        endpoints.permisos.posiciones(empleadoId),
+        PERMISOS_READ_CONFIG,
+      )
+      return toArray<Posicion>(parseApiData(response.data))
+    },
+  })
+}
+
+export function usePermisosPanelPorPosicion(empleadoId: string, positionId: string) {
+  return useQuery({
+    queryKey: queryKeys.permisos.panelPosicion(empleadoId, positionId),
+    enabled: Boolean(empleadoId && positionId),
+    queryFn: async () => {
+      const response = await httpClient.get(
+        endpoints.permisos.panelPorPosicion(empleadoId, positionId),
+        PERMISOS_READ_CONFIG,
+      )
+      return toArray<PermisoPanel>(parseApiData(response.data))
     },
   })
 }
@@ -161,6 +213,26 @@ export function useCambiarPermiso() {
           payload.groupId,
           payload.RolAsignado,
           payload.permissionId,
+          payload.accion,
+        ),
+      )
+      return normalizeWriteResponse(response)
+    },
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: queryKeys.permisos.all })
+    },
+  })
+}
+
+export function useCambiarPermisoPorNombre() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async (payload: CambiarPermisoNombrePayload) => {
+      const response = await httpClient.post(
+        endpoints.permisos.cambiarPorNombre(
+          payload.asignador,
+          payload.positionId,
+          encodeURIComponent(payload.permissionName),
           payload.accion,
         ),
       )

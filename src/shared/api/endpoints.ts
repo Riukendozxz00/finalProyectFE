@@ -16,12 +16,23 @@ export const endpoints = {
       `/mayoreo/ejecutivos/${idEjecutivo}/usuarios/modificar`,
   },
   permisos: {
+    permisosPorUsuario: (id: string) => `/menudeo/personal/${id}/permisos`,
     gruposPorUsuario: (id: string) => `/menudeo/personal/${id}/grupos`,
     permisosPorGrupoPost: (userId: string, groupId: string) =>
       `/menudeo/personal/${userId}/grupos/${groupId}/permisos`,
     gruposTodos: (empleadoId: string) => `/menudeo/personal/${empleadoId}/grupos/todos`,
     permisosPorGrupo: (empleadoId: string, groupId: string) =>
       `/menudeo/personal/${empleadoId}/grupos/${groupId}/permisos`,
+    posiciones: (empleadoId: string) => `/menudeo/personal/${empleadoId}/posiciones`,
+    panelPorPosicion: (empleadoId: string, positionId: string) =>
+      `/menudeo/personal/${empleadoId}/posicion/${positionId}/permisos-panel`,
+    cambiarPorNombre: (
+      asignador: string,
+      positionId: string,
+      permissionName: string,
+      accion: 'add' | 'remove',
+    ) =>
+      `/menudeo/personal/${asignador}/posicion/${positionId}/permiso/${permissionName}/accion/${accion}`,
     permisoAccion: (
       asignador: string,
       groupId: string,

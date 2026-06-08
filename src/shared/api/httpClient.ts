@@ -35,7 +35,13 @@ httpClient.interceptors.response.use(
     const skipUnauthorizedHandler = (
       error.config as { skipUnauthorizedHandler?: boolean } | undefined
     )?.skipUnauthorizedHandler
-    if (payload.status === 401 && !skipUnauthorizedHandler) onUnauthorized?.()
+    if (
+      payload.status === 401 &&
+      payload.code === 'SESSION_EXPIRED' &&
+      !skipUnauthorizedHandler
+    ) {
+      onUnauthorized?.()
+    }
     return Promise.reject(payload)
   },
 )
@@ -70,6 +76,7 @@ function defaultMessageByStatus(status: number) {
   const messages: Record<number, string> = {
     400: 'Solicitud inválida. Revisa la información capturada.',
     401: 'Tu sesión expiró o no está autorizada.',
+    403: 'No tienes permiso para realizar esta accion.',
     404: 'El recurso solicitado no existe.',
     500: 'El servidor no pudo procesar la solicitud.',
   }

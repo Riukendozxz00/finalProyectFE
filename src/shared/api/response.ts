@@ -34,6 +34,7 @@ export function toArray<T>(value: unknown): T[] {
       record.cotizaciones ??
       record.facturas ??
       record.grupos ??
+      record.posiciones ??
       record.permisos
     if (Array.isArray(candidate)) return candidate as T[]
   }
