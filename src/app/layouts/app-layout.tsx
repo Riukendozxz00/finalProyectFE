@@ -57,9 +57,13 @@ export function AppLayout() {
         )}
       >
         <div className="flex h-20 items-center gap-3 border-b border-white/10 px-5">
-          <div className="grid h-10 w-10 place-items-center rounded-md bg-white text-sm font-black text-kleep-blue">
-            K
-          </div>
+          <img
+            src="/favicon.png"
+            alt="KLEEP"
+            width="1024"
+            height="1024"
+            className="h-12 w-12 object-contain"
+          />
           <div>
             <span className="block text-lg font-black tracking-wide">KLEEP</span>
             <span className="text-xs font-medium text-white/55">Business Console</span>
