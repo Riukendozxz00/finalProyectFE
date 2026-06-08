@@ -143,16 +143,14 @@ export function LoginPage() {
   return (
     <main className="grid min-h-screen bg-[#f6f8ff] lg:grid-cols-[1.05fr_0.95fr]">
       <section className="hidden min-h-screen bg-kleep-ink px-10 py-10 text-white lg:flex lg:flex-col">
-        <div className="flex items-center gap-3">
-          <div className="grid h-11 w-11 place-items-center rounded-md bg-white text-base font-black text-kleep-blue">
-            K
-          </div>
-          <div>
-            <p className="text-xl font-black tracking-wide">KLEEP</p>
-            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-white/45">
-              Business Console
-            </p>
-          </div>
+        <div className="flex items-center">
+          <img
+            src="/favicon.png"
+            alt="KLEEP"
+            width="1024"
+            height="1024"
+            className="h-24 w-24 object-contain"
+          />
         </div>
 
         <div className="mt-auto max-w-xl pb-10">
