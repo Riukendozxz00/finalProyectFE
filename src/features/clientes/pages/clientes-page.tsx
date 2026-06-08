@@ -87,7 +87,6 @@ const filterSchema = z.object({
   nombre: z.string().optional(),
   direccion: z.string().optional(),
   localidad: z.string().optional(),
-  ejecutivoId: z.string().optional(),
   limiteCreditoMin: z.string().optional(),
   limiteCreditoMax: z.string().optional(),
   status: z.string().optional(),
@@ -213,7 +212,6 @@ export function ClientesPage() {
         nombre: emptyToUndefined(values.nombre ?? ''),
         direccion: emptyToUndefined(values.direccion ?? ''),
         localidad: emptyToUndefined(values.localidad ?? ''),
-        ejecutivoId: values.ejecutivoId ? Number(values.ejecutivoId) : undefined,
         limiteCreditoMin: values.limiteCreditoMin
           ? Number(values.limiteCreditoMin)
           : undefined,
@@ -291,19 +289,16 @@ export function ClientesPage() {
           <Input label="Direccion" {...filterForm.register('direccion')} />
           <Input label="Localidad" {...filterForm.register('localidad')} />
           <Input
-            label="Ejecutivo ID"
-            type="number"
-            {...filterForm.register('ejecutivoId')}
-          />
-          <Input
             label="Credito min"
-            type="number"
+            type="text"
+            inputMode="decimal"
             step="0.01"
             {...filterForm.register('limiteCreditoMin')}
           />
           <Input
             label="Credito max"
-            type="number"
+            type="text"
+            inputMode="decimal"
             step="0.01"
             {...filterForm.register('limiteCreditoMax')}
           />

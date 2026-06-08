@@ -28,6 +28,20 @@ import { emptyToNull, getRecordId } from '@/shared/utils/records'
 
 const PAGE_SIZE = 10
 
+const posiciones = [
+  { id: 2, nombre: 'Director Comercial' },
+  { id: 1, nombre: 'Director General' },
+  { id: 4, nombre: 'Ejecutivo de cuenta' },
+  { id: 5, nombre: 'Ejecutivo de Cuenta Jr' },
+  { id: 3, nombre: 'Gerente Regional' },
+]
+
+const regiones = [
+  { id: 1, nombre: 'norte' },
+  { id: 2, nombre: 'sur' },
+  { id: 3, nombre: 'centro' },
+]
+
 const usuarioSchema = z.object({
   nombre: z.string().min(1, 'Nombre requerido'),
   apellido: z.string().min(1, 'Apellido requerido'),
@@ -286,18 +300,30 @@ export function UsuariosPage() {
               {...createForm.register('apellido')}
               error={createForm.formState.errors.apellido?.message}
             />
-            <Input
-              label="Posicion ID"
-              type="number"
+            <Select
+              label="Posicion"
               {...createForm.register('posicion_id')}
               error={createForm.formState.errors.posicion_id?.message}
-            />
-            <Input
-              label="Region ID"
-              type="number"
+            >
+              <option value="">Selecciona una posicion</option>
+              {posiciones.map((posicion) => (
+                <option key={posicion.id} value={posicion.id}>
+                  {posicion.nombre}
+                </option>
+              ))}
+            </Select>
+            <Select
+              label="Region"
               {...createForm.register('regionId')}
               error={createForm.formState.errors.regionId?.message}
-            />
+            >
+              <option value="">Selecciona una region</option>
+              {regiones.map((region) => (
+                <option key={region.id} value={region.id}>
+                  {region.nombre}
+                </option>
+              ))}
+            </Select>
             <Input label="Telefono" {...createForm.register('telefono')} />
             <Input
               label="Correo"
