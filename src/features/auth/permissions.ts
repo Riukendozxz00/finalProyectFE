@@ -1,48 +1,57 @@
+const sectionPermissions = {
+  dashboard: 'dashboad_ver',
+  usuarios: 'usuarios_ver',
+  clientes: 'clientes_ver',
+  facturas: 'facturas_ver',
+  bases: 'bases_ver',
+  cuentasCredito: 'cuentas_credito_ver',
+  permisos: 'permisos_ver',
+} as const
+
 export const permissions = {
   dashboard: {
-    view: 'DASHBOARD_VIEW',
+    view: sectionPermissions.dashboard,
   },
   usuarios: {
-    view: 'USUARIOS_VIEW',
-    create: 'USUARIOS_CREATE',
-    update: 'USUARIOS_UPDATE',
-    delete: 'USUARIOS_DELETE',
+    view: sectionPermissions.usuarios,
+    create: sectionPermissions.usuarios,
+    update: sectionPermissions.usuarios,
+    delete: sectionPermissions.usuarios,
   },
   clientes: {
-    view: 'CLIENTES_VIEW',
-    create: 'CLIENTES_CREATE',
-    update: 'CLIENTES_UPDATE',
-    delete: 'CLIENTES_DELETE',
+    view: sectionPermissions.clientes,
+    create: sectionPermissions.clientes,
+    update: sectionPermissions.clientes,
+    delete: sectionPermissions.clientes,
   },
   bases: {
-    view: 'BASES_VIEW',
-    create: 'BASES_CREATE',
-    update: 'BASES_UPDATE',
-    delete: 'BASES_DELETE',
+    view: sectionPermissions.bases,
+    create: sectionPermissions.bases,
+    update: sectionPermissions.bases,
+    delete: sectionPermissions.bases,
   },
   cuentasCredito: {
-    view: 'CUENTAS_CREDITO_VIEW',
-    create: 'CUENTAS_CREDITO_CREATE',
-    update: 'CUENTAS_CREDITO_UPDATE',
-    delete: 'CUENTAS_CREDITO_DELETE',
+    view: sectionPermissions.cuentasCredito,
+    create: sectionPermissions.cuentasCredito,
+    update: sectionPermissions.cuentasCredito,
+    delete: sectionPermissions.cuentasCredito,
   },
   cotizaciones: {
-    view: 'COTIZACIONES_VIEW',
-    create: 'COTIZACIONES_CREATE',
-    update: 'COTIZACIONES_UPDATE',
-    delete: 'COTIZACIONES_DELETE',
+    view: sectionPermissions.facturas,
+    create: sectionPermissions.facturas,
+    update: sectionPermissions.facturas,
+    delete: sectionPermissions.facturas,
   },
   facturas: {
-    view: 'FACTURAS_VIEW',
-    create: 'FACTURAS_CREATE',
-    update: 'FACTURAS_UPDATE',
-    delete: 'FACTURAS_DELETE',
+    view: sectionPermissions.facturas,
+    create: sectionPermissions.facturas,
+    update: sectionPermissions.facturas,
+    delete: sectionPermissions.facturas,
   },
   permisos: {
-    view: 'PERMISOS_VIEW',
-    assign: 'PERMISOS_ASSIGN',
+    view: sectionPermissions.permisos,
+    assign: sectionPermissions.permisos,
   },
 } as const
 
 export type PermissionName = string
-

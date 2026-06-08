@@ -18,6 +18,9 @@ export const queryKeys = {
     gruposUsuario: (id: string) => ['permisos', 'grupos-usuario', id] as const,
     gruposTodos: (empleadoId: string) =>
       ['permisos', 'grupos-todos', empleadoId] as const,
+    posiciones: (empleadoId: string) => ['permisos', 'posiciones', empleadoId] as const,
+    panelPosicion: (empleadoId: string, positionId: string) =>
+      ['permisos', 'panel-posicion', empleadoId, positionId] as const,
     grupo: (empleadoId: string, groupId: string) =>
       ['permisos', 'grupo', empleadoId, groupId] as const,
     posicion: (empleadoId: string, groupId: string, positionId: string) =>
